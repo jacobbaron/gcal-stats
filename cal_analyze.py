@@ -6,6 +6,7 @@ import time as _time
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from timezone import LocalTimezone
 import pytz
 from wordcloud import WordCloud, STOPWORDS
@@ -148,9 +149,10 @@ def analyze_events(service):
     months = [g for n, g in weekShow.groupby(pd.TimeGrouper('3M'))]
     # pdb.set_trace()
     from matplotlib.backends.backend_pdf import PdfPages
-    pp = PdfPages('calData.pdf')
+    #pp = PdfPages('calData.pdf')
+    F = []
     for dmonth in months:
-    
+        f = Figure()
         dmonth.set_index(dmonth.index.strftime("%b %d")).plot(kind = "bar")
 
         monthStart = dmonth.index[0].strftime("%B %Y")
@@ -158,8 +160,11 @@ def analyze_events(service):
         plt.title('{} - {}'.format(monthStart,monthEnd))
         plt.ylabel('Time (hours)')
         plt.gcf().subplots_adjust(bottom = 0.15)
-        pp.savefig()    
-    pp.close()
+        plt.close()
+        F.append(f)
+    return f
+    #    pp.savefig()    
+ #   pp.close()
     
 
     # for event in events:

@@ -3,18 +3,19 @@
 import os
 import flask
 import requests
-
+import io
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 from cal_analyze import analyze_events
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
 CLIENT_SECRETS_FILE = "client_secret_268205187149-tke3jbrhcgk8abdminqpf27p1nu06ssc.apps.googleusercontent.com.json"
 
 # This OAuth 2.0 access scope allows for full read/write access to the
 # authenticated user's account and requires requests to use an SSL connection.
-SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+SCOPES = ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/drive.metadata.readonly']
 API_SERVICE_NAME = 'calendar'
 API_VERSION = 'v3'
 
@@ -40,25 +41,13 @@ def test_api_request():
   service = googleapiclient.discovery.build(
       API_SERVICE_NAME, API_VERSION, credentials=credentials)
   #service = get_gcal_service()
-  analyze_events(service)
-  # if 'credentials' not in flask.session:
-  #   return flask.redirect('authorize')
+  figs = analyze_events(service)
+  output = io.BytesIO()
+  FigureCanvas(figs).print_png(output)
+  #output.close()
+  return flask.Response(output.getvalue(), mimetype='image/png')
 
-  # # Load credentials from the session.
-  # credentials = google.oauth2.credentials.Credentials(
-  #     **flask.session['credentials'])
-
-  # drive = googleapiclient.discovery.build(
-  #     API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
-  # files = drive.files().list().execute()
-
-  # # Save credentials back to session in case access token was refreshed.
-  # # ACTION ITEM: In a production app, you likely want to save these
-  # #              credentials in a persistent database instead.
-  # flask.session['credentials'] = credentials_to_dict(credentials)
-
-  return 'Code executed... I guess it worked!'
+ # return 'Code executed... I guess it worked!'
 
 
 @app.route('/authorize')
