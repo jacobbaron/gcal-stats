@@ -7,16 +7,16 @@ import requests
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
-
+from cal_analyze import analyze_events
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
 CLIENT_SECRETS_FILE = "client_secret_268205187149-tke3jbrhcgk8abdminqpf27p1nu06ssc.apps.googleusercontent.com.json"
 
 # This OAuth 2.0 access scope allows for full read/write access to the
 # authenticated user's account and requires requests to use an SSL connection.
-SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
-API_SERVICE_NAME = 'drive'
-API_VERSION = 'v2'
+SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+API_SERVICE_NAME = 'calendar'
+API_VERSION = 'v3'
 
 app = flask.Flask(__name__)
 # Note: A secret key is included in the sample so that it works.
@@ -34,22 +34,31 @@ def index():
 def test_api_request():
   if 'credentials' not in flask.session:
     return flask.redirect('authorize')
-
   # Load credentials from the session.
   credentials = google.oauth2.credentials.Credentials(
       **flask.session['credentials'])
-
-  drive = googleapiclient.discovery.build(
+  service = googleapiclient.discovery.build(
       API_SERVICE_NAME, API_VERSION, credentials=credentials)
+  #service = get_gcal_service()
+  analyze_events(service)
+  # if 'credentials' not in flask.session:
+  #   return flask.redirect('authorize')
 
-  files = drive.files().list().execute()
+  # # Load credentials from the session.
+  # credentials = google.oauth2.credentials.Credentials(
+  #     **flask.session['credentials'])
 
-  # Save credentials back to session in case access token was refreshed.
-  # ACTION ITEM: In a production app, you likely want to save these
-  #              credentials in a persistent database instead.
-  flask.session['credentials'] = credentials_to_dict(credentials)
+  # drive = googleapiclient.discovery.build(
+  #     API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
-  return flask.jsonify(**files)
+  # files = drive.files().list().execute()
+
+  # # Save credentials back to session in case access token was refreshed.
+  # # ACTION ITEM: In a production app, you likely want to save these
+  # #              credentials in a persistent database instead.
+  # flask.session['credentials'] = credentials_to_dict(credentials)
+
+  return 'Code executed... I guess it worked!'
 
 
 @app.route('/authorize')
@@ -122,6 +131,17 @@ def clear_credentials():
     del flask.session['credentials']
   return ('Credentials have been cleared.<br><br>' +
           print_index_table())
+
+def get_gcal_service():
+  if 'credentials' not in flask.session:
+    return flask.redirect('authorize')
+  # Load credentials from the session.
+  credentials = google.oauth2.credentials.Credentials(
+      **flask.session['credentials'])
+  service = googleapiclient.discovery.build(
+      API_SERVICE_NAME, API_VERSION, credentials=credentials)
+  return service
+
 
 
 def credentials_to_dict(credentials):
