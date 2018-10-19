@@ -1,0 +1,41 @@
+
+<!--JavaScript - Select/Unselect (Check/Uncheck) all CheckBoxes on Button Click.-->
+<html>
+    <head>
+        <title>JavaScript - Select/Unselect (Check/Uncheck) all CheckBoxes on Button Click.</title>
+        <script type="text/javascript">
+            function selectAll(){
+                var items=document.getElementsByName('acs');
+                for(var i=0; i<items.length; i++){
+                    if(items[i].type=='checkbox')
+                        items[i].checked=true;
+                }
+            }
+            
+            function UnSelectAll(){
+                var items=document.getElementsByName('acs');
+                for(var i=0; i<items.length; i++){
+                    if(items[i].type=='checkbox')
+                        items[i].checked=false;
+                }
+            }           
+        </script>
+    </head>
+<body style="text-align: left;">
+    <h1>Select calendars to check out:</h1>
+    <br>
+    <form action="{{ url_for('handle_data') }}" method="post">
+        {% for cal in cal_list %}
+            <input type="checkbox" name="acs" value =  "{{cal}}"> {{cal}}<br>
+        {% endfor %}
+    
+    <p>
+        <input type="button" onclick='selectAll()' value="Select All"/>
+        <input type="button" onclick='UnSelectAll()' value="Select None"/>
+    </p>
+
+    <input type="submit" />
+    </form>
+</body>
+
+</html>

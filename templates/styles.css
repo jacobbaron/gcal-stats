@@ -1,0 +1,31 @@
+
+div#content {
+    display: none;
+    }
+ 
+div#loading {
+    top: 200 px;
+    margin: auto;
+    position: absolute;
+    z-index: 1000;
+    width: 160px;
+    height: 24px;
+    background: url(loadingimage.gif) no-repeat;
+    cursor: wait;
+    }
+
+            text {
+            font: 12px sans-serif;
+        }
+        .testBlock {
+            display: block;
+            float: left;
+            height: 300px;
+            width: 300px;
+        }
+        html, body {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }

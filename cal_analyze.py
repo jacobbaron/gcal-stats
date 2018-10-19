@@ -103,19 +103,21 @@ def white_color_func(word, font_size, position, orientation, random_state=None,
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
 
-def analyze_events(service):    
+def get_data(service,cals_to_include = 'all'):    
     #service = get_cal_service()
+    
     (name2id,id2name, calendar_list) = get_calendar_list(service)
     (startTime,endTime) = get_last_year()
-    # CalName = raw_input("Which Calendar? ")
-    # type(CalName)
-    # CalName = 'Work'
+
+    if cals_to_include is 'all':
+        cals_to_include = name2id.keys()
     events = []
 
-    for CalName in name2id.keys():
+    for CalName in cals_to_include:
         events.extend(get_events(service,name2id[CalName],startTime,endTime))
     data = gen_event_table(events,id2name)
-    data = data[(data["Creator"] == "Cheetiri Smith") & (~data.AllDay)]
+    data = data[(~data.AllDay)]
+    return data
     # plt.figure(1)  
 
     # data.Duration.groupby([data.index.strftime('%Y%m'),data.Calendar]).count().plot(kind = "bar")
@@ -131,38 +133,58 @@ def analyze_events(service):
     # plt.ylabel("Number of events")
      
 
-    # text = data.Description.T.tolist()
-    # text = [i.encode("utf-8") for i in text]
-    # strs = " ".join(text)
-    
-    # wc = WordCloud(width=1600, height=800,max_words=500,random_state=1).generate(strs)
-    # stopwords = set(STOPWORDS)
-    # # pdb.set_trace()
-    # default_colors = wc.to_array()
-    # plt.title("Custom colors")
-    # plt.imshow(wc.recolor(color_func=white_color_func, random_state=3),
-    # interpolation="bilinear")
-    # plt.axis("off")
-        
-    weekShow = ((data['Duration']/np.timedelta64(1,'h')).groupby(data.Calendar)
-            .resample('W').sum().unstack(level = 0))
-    months = [g for n, g in weekShow.groupby(pd.TimeGrouper('3M'))]
-    # pdb.set_trace()
-    from matplotlib.backends.backend_pdf import PdfPages
-    #pp = PdfPages('calData.pdf')
-    F = []
-    for dmonth in months:
-        f = Figure()
-        dmonth.set_index(dmonth.index.strftime("%b %d")).plot(kind = "bar")
 
-        monthStart = dmonth.index[0].strftime("%B %Y")
-        monthEnd = dmonth.index[len(dmonth)-1].strftime("%B %Y")
-        plt.title('{} - {}'.format(monthStart,monthEnd))
-        plt.ylabel('Time (hours)')
-        plt.gcf().subplots_adjust(bottom = 0.15)
-        plt.close()
-        F.append(f)
-    return f
+def word_cloud(data):
+    text = data.Description.T.tolist()
+    text = [i.encode("utf-8") for i in text]
+    strs = " ".join(text)
+    wc = WordCloud(width=1600, height=800,max_words=500,random_state=1).generate(strs)
+    stopwords = set(STOPWORDS)
+    default_colors = wc.to_array()
+    plt.title("Custom colors")
+    plt.imshow(wc.recolor(color_func=white_color_func, random_state=3),
+    interpolation="bilinear")
+    plt.axis("off")
+
+
+def plot_cal_bars(data):
+    weekShow = ((data['Duration']/np.timedelta64(1,'h')).groupby(data.Calendar)
+            .resample('W').sum().unstack(level = 0)).round(1)
+
+    #xlabels
+    weekNames =  weekShow.set_index(weekShow.index.strftime("%b %d")).index.tolist()
+    #mini bar names
+    calNames = weekShow.columns.tolist()
+    from nvd3 import multiBarChart
+    from markupsafe import Markup
+    chart = multiBarChart(width=1600, height=400, x_axis_format=None)
+    xdata = weekNames
+    extra_serie = {"tooltip": {"y_start": "You spent ", "y_end": " hours"}}
+    for cal_name in weekShow:
+        chart.add_serie(name=cal_name, y=weekShow[cal_name].tolist(), x=xdata,extra=extra_serie)
+    chart.buildhtml()
+    plot = Markup(chart.htmlcontent)
+    return plot
+
+
+    # months = [g for n, g in weekShow.groupby(pd.TimeGrouper('3M'))]
+    # # pdb.set_trace()
+    # from matplotlib.backends.backend_pdf import PdfPages
+    # #pp = PdfPages('calData.pdf')
+    # F = []
+    # pdb.set_trace()
+    # for dmonth in months:
+    #     f = Figure()
+    #     dmonth.set_index(dmonth.index.strftime("%b %d")).plot(kind = "bar")
+
+    #     monthStart = dmonth.index[0].strftime("%B %Y")
+    #     monthEnd = dmonth.index[len(dmonth)-1].strftime("%B %Y")
+    #     plt.title('{} - {}'.format(monthStart,monthEnd))
+    #     plt.ylabel('Time (hours)')
+    #     plt.gcf().subplots_adjust(bottom = 0.15)
+    #     plt.close()
+    #     F.append(f)
+    # return f
     #    pp.savefig()    
  #   pp.close()
     

@@ -7,7 +7,8 @@ import io
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
-from cal_analyze import analyze_events
+from cal_analyze import get_data,plot_cal_bars, get_calendar_list
+from markupsafe import Markup
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
@@ -28,7 +29,10 @@ app.secret_key = 'REPLACE ME - this value is here as a placeholder.'
 
 @app.route('/')
 def index():
-  return print_index_table()
+  if 'credentials' not in flask.session:
+    return ('<a href="/test">Sign in to view your calendar data!</a><br><a href="/clear">Sign out')
+  else:
+    return ('<a href="/test">Signed in! Click here to view your calendar data!</a><br><a href="/clear">Sign out')
 
 
 @app.route('/test')
@@ -39,16 +43,43 @@ def test_api_request():
   credentials = google.oauth2.credentials.Credentials(
       **flask.session['credentials'])
   service = googleapiclient.discovery.build(
-      API_SERVICE_NAME, API_VERSION, credentials=credentials)
-  #service = get_gcal_service()
-  figs = analyze_events(service)
-  output = io.BytesIO()
-  FigureCanvas(figs).print_png(output)
-  #output.close()
-  return flask.Response(output.getvalue(), mimetype='image/png')
+      API_SERVICE_NAME, API_VERSION, credentials=credentials)  
+  # service = get_gcal_service()
+  cal_data = get_calendar_list(service)
+
+  flask.g.cal_list = list(cal_data[0].keys())
+  return flask.render_template('list_calendars.html',cal_list = flask.g.cal_list)
+  # flask.g.data = get_data(service)
+  # return ('Data Loaded! <a href="/bar_plot">Click here to view!</a></td>')
+@app.route('/handle_data', methods=['POST'])
+def handle_data():
+  cals_to_analyze=flask.request.values.getlist('acs')
+  flask.g.cals_to_analyze = cals_to_analyze
+  service = get_gcal_service()
+  data = get_data(service, flask.g.cals_to_analyze)
+  plot = plot_cal_bars(data)
+  return flask.render_template('demo_template.html',d3_code=plot)
+  # return flask.redirect(flask.url_for('bar_plot'))
+
+
+# @app.route('/bar_plot')
+# def bar_plot():
+#   data = getattr(flask.g, 'data', None)
+
+  
+#   #output.close()
+#   r
 
  # return 'Code executed... I guess it worked!'
-
+def get_gcal_service():
+  if 'credentials' not in flask.session:
+    return flask.redirect('authorize')
+  # Load credentials from the session.
+  credentials = google.oauth2.credentials.Credentials(
+      **flask.session['credentials'])
+  service = googleapiclient.discovery.build(
+      API_SERVICE_NAME, API_VERSION, credentials=credentials)
+  return service
 
 @app.route('/authorize')
 def authorize():
@@ -118,8 +149,7 @@ def revoke():
 def clear_credentials():
   if 'credentials' in flask.session:
     del flask.session['credentials']
-  return ('Credentials have been cleared.<br><br>' +
-          print_index_table())
+  return flask.redirect('/')
 
 def get_gcal_service():
   if 'credentials' not in flask.session:
@@ -140,29 +170,7 @@ def credentials_to_dict(credentials):
           'client_id': credentials.client_id,
           'client_secret': credentials.client_secret,
           'scopes': credentials.scopes}
-
-def print_index_table():
-  return ('<table>' +
-          '<tr><td><a href="/test">Test an API request</a></td>' +
-          '<td>Submit an API request and see a formatted JSON response. ' +
-          '    Go through the authorization flow if there are no stored ' +
-          '    credentials for the user.</td></tr>' +
-          '<tr><td><a href="/authorize">Test the auth flow directly</a></td>' +
-          '<td>Go directly to the authorization flow. If there are stored ' +
-          '    credentials, you still might not be prompted to reauthorize ' +
-          '    the application.</td></tr>' +
-          '<tr><td><a href="/revoke">Revoke current credentials</a></td>' +
-          '<td>Revoke the access token associated with the current user ' +
-          '    session. After revoking credentials, if you go to the test ' +
-          '    page, you should see an <code>invalid_grant</code> error.' +
-          '</td></tr>' +
-          '<tr><td><a href="/clear">Clear Flask session credentials</a></td>' +
-          '<td>Clear the access token currently stored in the user session. ' +
-          '    After clearing the token, if you <a href="/test">test the ' +
-          '    API request</a> again, you should go back to the auth flow.' +
-          '</td></tr></table>')
-
-
+  
 if __name__ == '__main__':
   # When running locally, disable OAuthlib's HTTPs verification.
   # ACTION ITEM for developers:
