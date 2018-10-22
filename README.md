@@ -1,6 +1,6 @@
 # gcal-stats
 
-A small flask app that tells you about how you've been spending your time. [https://frozen-basin-79689.herokuapp.com/](Click here) to launch the app.
+A small flask app that tells you about how you've been spending your time. [Click here](https://frozen-basin-79689.herokuapp.com/) to launch the app.
 
 
 
